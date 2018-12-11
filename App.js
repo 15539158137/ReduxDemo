@@ -11,6 +11,8 @@ import {Platform, StyleSheet, Alert, Text, View, Button, TextInput, TouchableOpa
 
 const CarSchema = {
     //optional 表示是否可以为空  primaryKey表示主键，但是他不会自增，需要自己来实现不重复。主键重复就不能保存进去
+    //当参数没有default值时候，option设置为true表示可以为空
+//当参数有default值时，option不管设置true和false都能插入进去，因为默认值是default的值
     name: 'Car',
     primaryKey: 'id',
     properties: {
@@ -18,7 +20,7 @@ const CarSchema = {
         make: 'string',
         model: 'string',
         miles: {type: 'int', default: 0},
-        newData: {type: 'string', default: 'newData', optional: true}
+        newData: {type: 'string', default: 'newData', optional: false}
     }
 };
 
@@ -30,16 +32,18 @@ const UpdateCarSchema = {
         make: 'string',
         model: 'string',
         miles: {type: 'int', default: 0},
-        newData: {type: 'string', default: 'newData', optional: true}
+        newData: {type: 'string', default: 'newData', optional: false}
     }
 };
+
+
 const PersonSchema = {
     name: 'Person',
     properties: {
         name: 'string',
-        birthday: 'date',
+        birthday: 'string',
         cars: 'Car[]',
-        picture: 'data?' // optional property
+        picture: 'string?'
     }
 };
 const Realm = require('realm');
@@ -143,11 +147,44 @@ export default class App extends Component<Props> {
                         }}>
                             <Text style={{fontSize: 17, color: 'black'}}>点击删除所有</Text>
                         </TouchableOpacity>
+                        <TouchableOpacity onPress={() => {
+                            this.insertPerson();
+                        }} style={{
+                            marginTop: 15,
+                            backgroundColor: 'gray',
+                            flexDirection: 'row',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            width: ScreenWidth,
+                            height: 0.06 * ScreenHeight
+                        }}>
+                            <Text style={{fontSize: 17, color: 'black'}}>点击添加一个人进去</Text>
+                        </TouchableOpacity>
                         <Text>{'当前版本:' + this.state.currentVersion + ' \n ' + JSON.stringify(this.state.allDatas)}</Text>
                     </View>
                 </ScrollView>
             </View>
         );
+    }
+
+//新增一person且当前car表的所有数据都在这个person下
+    insertPerson() {
+        let cars = null;
+        cars = SaveUtil.getInstance().getRealm().objects('Car');
+        SaveUtil.getInstance().getRealm().write(() => {
+            //     picture: 'string?'
+            SaveUtil.getInstance().getRealm().create('Person', {
+                name: '小名' + cars.length,
+                birthday: cars.length + '',
+                make: 'DXXX',
+                cars: cars,
+            });
+            let persons = SaveUtil.getInstance().getRealm().objects('Person');
+            this.setState((prevState) => ({allDatas: persons}), () => {
+                console.log('数据' + persons[0].cars[0].miles);
+                console.log(JSON.stringify(this.state.allDatas));
+            })
+        })
     }
 
     //打开、创建数据库
@@ -164,6 +201,7 @@ export default class App extends Component<Props> {
                 console.log(error);
             });
     }
+
 //新增一条数据到数据库
     addDataToDB() {
         console.log("addDataToDB");
